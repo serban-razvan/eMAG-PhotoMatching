@@ -7,6 +7,8 @@ import numpy
 import cv2
 from PIL import Image
 import shutil
+import threading
+import Queue
 
 path_originals = "toresize/"	#folderul cu imaginile de comparat(in arhiva o sa fie gol)
 path_to_write = "resized/"	#folderul unde punem pozele redimensionate(il stergem dupa ce terminam )
@@ -48,6 +50,21 @@ def execute(ID1, ID2):
 	# compare the images
 	return compare_images(poza1, poza2)
 
+def razExecute(ID1, ID2, q):
+	path1 = "resized/" + str(ID1)
+	path2 = "resized/" + str(ID2)
+
+	poza1 = cv2.imread(path1)
+	poza2 = cv2.imread(path2)
+ 
+	# convert the images to grayscale
+	poza1 = cv2.cvtColor(poza1, cv2.COLOR_BGR2GRAY)
+	poza2 = cv2.cvtColor(poza2, cv2.COLOR_BGR2GRAY)
+ 
+	# compare the images
+	q.put(compare_images(poza1, poza2))
+
+
 resize()
 
 path = "resized/"
@@ -61,8 +78,19 @@ while i < len(files):
 	original = original[:-11]
 	sim = ""
 	j = i + 1
+	
+	initj = j
+	endj = len(files)-1
+	
 	while j < len(files):
-		x = execute(files[i],files[j] )
+		
+		q = Queue.Queue()
+		threading.Thread(target = razExecute, args=(files[i],files[j],q)).start()
+		j+=1
+		
+	j = initj
+	while j<len(files):
+		x = q.get()
 		if x > 80.0 :		#aici setam acuratetea,cu cat e mai mare,avem output mai bun
 			sim += ";"	#dar si timpul creste substantial
 			sim += files[j]
