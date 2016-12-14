@@ -79,16 +79,13 @@ while i < len(files):
 	sim = ""
 	j = i + 1
 	
-	initj = j
-	endj = len(files)-1
-	
 	while j < len(files):
 		
 		q = Queue.Queue()
 		threading.Thread(target = razExecute, args=(files[i],files[j],q)).start()
 		j+=1
 		
-	j = initj
+	j = i+i
 	while j<len(files):
 		x = q.get()
 		if x > 80.0 :		#aici setam acuratetea,cu cat e mai mare,avem output mai bun
