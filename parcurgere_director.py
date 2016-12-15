@@ -10,6 +10,8 @@ import shutil
 import threading
 import Queue
 
+print "start"
+
 path_originals = "toresize/"	#folderul cu imaginile de comparat(in arhiva o sa fie gol)
 path_to_write = "resized/"	#folderul unde punem pozele redimensionate(il stergem dupa ce terminam )
 dirs = os.listdir( path_originals )
@@ -36,61 +38,39 @@ def compare_images(imageA, imageB):
 	s = ssim(imageA, imageB)	
 	return s*100
 
-def execute(ID1, ID2):
-	path1 = "resized/" + str(ID1)
-	path2 = "resized/" + str(ID2)
-
-	poza1 = cv2.imread(path1)
-	poza2 = cv2.imread(path2)
- 
-	# convert the images to grayscale
-	poza1 = cv2.cvtColor(poza1, cv2.COLOR_BGR2GRAY)
-	poza2 = cv2.cvtColor(poza2, cv2.COLOR_BGR2GRAY)
+def execute(poza1, poza2, q):
+	
  
 	# compare the images
-	return compare_images(poza1, poza2)
-
-def razExecute(ID1, ID2, q):
-	path1 = "resized/" + str(ID1)
-	path2 = "resized/" + str(ID2)
-
-	poza1 = cv2.imread(path1)
-	poza2 = cv2.imread(path2)
- 
-	# convert the images to grayscale
-	poza1 = cv2.cvtColor(poza1, cv2.COLOR_BGR2GRAY)
-	poza2 = cv2.cvtColor(poza2, cv2.COLOR_BGR2GRAY)
- 
-	# compare the images
-	q.put(compare_images(poza1, poza2))
-
+	q.put( compare_images(poza1, poza2))
 
 resize()
 
 path = "resized/"
-files = os.listdir(path)
+files2 = os.listdir(path)
+files = [(cv2.cvtColor(cv2.imread("resized/"+x),cv2.COLOR_BGR2GRAY),x) for x in files2]
 
 g = open("adev.csv",'w')
 
 i = 0
 while i < len(files):
-	original = files[i]
+	original = files[i][1]
 	original = original[:-11]
 	sim = ""
 	j = i + 1
-	
+
+	q = Queue.Queue()
 	while j < len(files):
-		
-		q = Queue.Queue()
-		threading.Thread(target = razExecute, args=(files[i],files[j],q)).start()
+		threading.Thread(target=execute,args=(files[i][0],files[j][0],q)).start()
 		j+=1
-		
-	j = i+i
-	while j<len(files):
+
+	j = i + 1
+
+	while j < len(files):
 		x = q.get()
 		if x > 80.0 :		#aici setam acuratetea,cu cat e mai mare,avem output mai bun
 			sim += ";"	#dar si timpul creste substantial
-			sim += files[j]
+			sim += files[j][1]
 			sim = sim[:-11]
 			files.pop(j)
 		else:
